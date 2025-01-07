@@ -99,8 +99,25 @@ if type curl > /dev/null 2>&1; then
 			echo "$(date +%F_%T) 【钉钉通道 消息转发失败】：运营商网络问题，访问接口失败，请变更外网IP后再尝试。或是请检查配置参数[dd_Webhook]是否填写正确，返回提示：$dd_push。【消息】：$wx_text" >> "$MODDIR/log.log"
 		fi
 	}
+	bark_push() {
+		bark_url="$(echo "$config_conf" | egrep '^bark_url=' | sed -n 's/bark_url=//g;$p')"
+		device_key="$(echo "$config_conf" | egrep '^device_key=' | sed -n 's/device_key=//g;$p')"
+		bark_post="{\"title\": \"$MF_app\",\"body\": \"$wx_text\",\"level\": \"critical\",\"volume\": 5,\"badge\": 1,\"device_key\": \"$device_key\"}"
+		bark_push="$(curl -s --connect-timeout 12 -m 15 -H 'Content-Type: application/json' -d "$bark_post" "$bark_url")"
+		if [ -n "$bark_push" ]; then
+			bark_push_errcode="$(echo "$bark_push" | egrep '\"code\"' | sed -n 's/ //g;s/.*\"code\"://g;s/\".*//g;s/,.*//g;$p')"
+			if [ "$dd_push_errcode" = "200" ]; then
+				echo "$(date +%F_%T) 【Bark通道 消息转发成功】：$wx_text" >> "$MODDIR/log.log"
+			else
+				echo "$(date +%F_%T) 【Bark通道 消息转发失败】：请检查配置参数[bark_url,device_key]是否填写正确，返回提示：$bark_push。【消息】：$wx_text" >> "$MODDIR/log.log"
+			fi
+		else
+			echo "$(date +%F_%T) 【钉钉通道 消息转发失败】：运营商网络问题，访问接口失败，请变更外网IP后再尝试。或是请检查配置参数[dd_Webhook]是否填写正确，返回提示：$bark_push。【消息】：$wx_text" >> "$MODDIR/log.log"
+		fi
+	}
 	wx_switch="$(echo "$config_conf" | egrep '^wx_switch=' | sed -n 's/wx_switch=//g;$p')"
 	dd_switch="$(echo "$config_conf" | egrep '^dd_switch=' | sed -n 's/dd_switch=//g;$p')"
+	bark_switch="$(echo "$config_conf" | egrep '^bark_switch=' | sed -n 's/bark_switch=//g;$p')"
 	battery_level="$(dumpsys battery | egrep 'level:' | sed -n 's/.*level: //g;$p')"
 	Low_battery="$(echo "$config_conf" | egrep '^Low_battery=' | sed -n 's/Low_battery=//g;$p')"
 	if [ -n "$battery_level" -a "$battery_level" -le "$Low_battery" ]; then
@@ -149,6 +166,7 @@ if type curl > /dev/null 2>&1; then
 		Message_p="$(echo "$Message_list" | sed -n "${Message_n}p")"
 		Message_id="$(echo "$Message_p" | cut -d ' ' -f '1-2' | sed -n 's/NotificationRecord(//g;$p')"
 		MF_app="$(echo "$Message_id" | sed -n 's/.* pkg=//g;s/ .*//g;$p')"
+		notify_date=$(date +"%d/%b/%Y %H:%M")
 		if [ -n "$(echo "$app_list" | egrep "$MF_app")" -a ! -n "$(echo "$MF_pushed" | egrep "$Message_id")" ]; then
 			Message_app="$(echo "$config_conf" | egrep "^$MF_app=" | sed -n 's/.*=//g;$p')"
 			if [ -n "$Message_app" ]; then
@@ -175,6 +193,10 @@ if type curl > /dev/null 2>&1; then
 					if [ "$dd_switch" = "1" ]; then
 						dingtalk_push
 					fi
+					if [ "$bark_switch" = "1" ]; then
+                        wx_text="$ticker_Text"
+                        bark_push
+                    fi
 				fi
 			else
 				android_text="$(echo "$Message_p" | egrep 'android\.text=' | sed -n 's/.*android\.text=//g;s/) android\..*//g;s/.*String (//g;s/\"/\\\"/g;$p')"
@@ -199,6 +221,10 @@ if type curl > /dev/null 2>&1; then
 						if [ "$dd_switch" = "1" ]; then
 							dingtalk_push
 						fi
+						if [ "$bark_switch" = "1" ]; then
+                        	wx_text="$ticker_Text"
+                        	bark_push
+                    	fi
 					fi
 				fi
 			fi
