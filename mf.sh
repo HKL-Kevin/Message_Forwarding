@@ -112,7 +112,7 @@ if type curl > /dev/null 2>&1; then
 				echo "$(date +%F_%T) 【Bark通道 消息转发失败】：请检查配置参数[bark_url,device_key]是否填写正确，返回提示：$bark_push。【消息】：$wx_text" >> "$MODDIR/log.log"
 			fi
 		else
-			echo "$(date +%F_%T) 【钉钉通道 消息转发失败】：运营商网络问题，访问接口失败，请变更外网IP后再尝试。或是请检查配置参数[dd_Webhook]是否填写正确，返回提示：$bark_push。【消息】：$wx_text" >> "$MODDIR/log.log"
+			echo "$(date +%F_%T) 【Bark通道 消息转发失败】：运营商网络问题，访问接口失败，请变更外网IP后再尝试。或是请检查配置参数[bark_url,device_key]是否填写正确，返回提示：$bark_push。【消息】：$wx_text" >> "$MODDIR/log.log"
 		fi
 	}
 	wx_switch="$(echo "$config_conf" | egrep '^wx_switch=' | sed -n 's/wx_switch=//g;$p')"
@@ -194,9 +194,9 @@ if type curl > /dev/null 2>&1; then
 						dingtalk_push
 					fi
 					if [ "$bark_switch" = "1" ]; then
-                        wx_text="$ticker_Text"
-                        bark_push
-                    fi
+                        			wx_text=$(echo "$ticker_Text" | tr '\r' '\\r' | sed 's/\\ //g')
+                        			bark_push
+                    			fi
 				fi
 			else
 				android_text="$(echo "$Message_p" | egrep 'android\.text=' | sed -n 's/.*android\.text=//g;s/) android\..*//g;s/.*String (//g;s/\"/\\\"/g;$p')"
@@ -222,9 +222,9 @@ if type curl > /dev/null 2>&1; then
 							dingtalk_push
 						fi
 						if [ "$bark_switch" = "1" ]; then
-                        	wx_text="$ticker_Text"
-                        	bark_push
-                    	fi
+                        				wx_text=$(echo "$ticker_Text" | tr '\r' '\\r' | sed 's/\\ //g')
+							bark_push
+                    				fi
 					fi
 				fi
 			fi
